@@ -1,0 +1,1 @@
+# suma_power_autotest
