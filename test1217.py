@@ -1598,7 +1598,7 @@ def tl2_channel_set():
     print("通道1和通道4已开启。")
 
     # 设置通道1的相关参数
-    osc.chanset('CH1', 1, volt, '20.0000E+06', 2e-2)
+    osc.chanset('CH1', -2, volt, '20.0000E+06', 2e-2)
     print(f"CH1 设置：位置=2, 缩放尺度={volt}, 时间基准=20.0000E+06, 时间尺度=0.01s")
 
     # 设置通道4的纵向尺度
@@ -2087,7 +2087,7 @@ def main_window():      # 主窗口设计
     # 设置输入框和标签
     tk.Label(root, text='SheetName:').grid(row=4, column=0, sticky=tk.E)
     EnValue1 = tk.StringVar()
-    EnValue1.set('P3V3_AUX')
+    EnValue1.set('P3V3')
     entry = tk.Entry(root, show=None, width=20, textvariable=EnValue1)
     entry.grid(row=4, column=1, columnspan=2)
 
@@ -2426,6 +2426,7 @@ def test2(type):
     auto_close_messagebox(root,'程序执行完毕', 'TEST2测试完成，若继续进行TEST4测试，请进行电路下电')
     if root2:
         root2.destroy()
+    control_dc_source(vin, Iin, 'OFF')
     test4('ALL')
 
 def test3(type):
@@ -3074,8 +3075,8 @@ def test6(type):
     if multi_phase_enabled.get() == "True":
         phase = int(phase_value.get())  # 假设 phase_value 是界面上的输入框变量
         print(f'phase的值为{phase}')
-        table_type = '表格2'
-        print('表格2')
+        table_type = '表格1'
+        print('表格1')
     else:
         table_type = '表格1'
         print('表格1')
@@ -3370,6 +3371,7 @@ def test9(type):
 
             elif i == 3:
                 print("设置水平模式和触发条件，开始单步触发...")
+                control_dc_source(12.0, 3.0, 'OFF')
                 set_horizontal_mode(1e-2, 1e-2, 35, 1e7)
                 osc.trigger('NORMAL', 'CH4', 'RISE', volt / 2)
                 time.sleep(3)
@@ -3394,6 +3396,7 @@ def test9(type):
 
             elif i == 4:
                 print("设置水平模式和触发条件，开始单步触发...")
+                control_dc_source(12.0, 3.0, 'OFF')
                 set_horizontal_mode(1e-2, 1e-2, 40, 1e7)
                 osc.trigger('NORMAL', 'CH1', 'FALL', volt / 2)
                 time.sleep(3)
@@ -3412,6 +3415,7 @@ def test9(type):
                 print(f"第 {i} 次测试完成，数据已保存")
                 el.short('OFF')
                 el.state('OFF')
+
 
 
         elif type =='slowocp':
@@ -3454,6 +3458,7 @@ def test9(type):
         elif type== 'scpbefore':
             i = 3
             print("设置水平模式和触发条件，开始单步触发...")
+            control_dc_source(12.0, 3.0, 'OFF')
             set_horizontal_mode(1e-2, 1e-2, 35, 1e7)
             osc.trigger('NORMAL', 'CH4', 'RISE', volt / 2)
             time.sleep(3)
@@ -3479,6 +3484,7 @@ def test9(type):
         elif type == 'scpafter':
             i = 4
             print("设置水平模式和触发条件，开始单步触发...")
+            control_dc_source(12.0, 3.0, 'OFF')
             set_horizontal_mode(1e-2, 1e-2, 40, 1e7)
             osc.trigger('NORMAL', 'CH1', 'FALL', volt / 2)
             time.sleep(3)
@@ -3509,6 +3515,7 @@ def test9(type):
     xls.save()  # 保存 Excel 文件
     print("TEST9测试结束")
     auto_close_messagebox(root9, title='程序执行完毕',message='TEST9执行完毕,如需进行TEST3测试，请更换CH4通道为高压差分探头连接VIN，CH2添加单端无源探头连接EN，并进行电路下电')
+    control_dc_source(12.0, 3.0, 'OFF')
     root9.destroy()
 
 
