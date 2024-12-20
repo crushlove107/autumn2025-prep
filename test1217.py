@@ -1598,7 +1598,7 @@ def tl2_channel_set():
     print("通道1和通道4已开启。")
 
     # 设置通道1的相关参数
-    osc.chanset('CH1', -2, volt, '20.0000E+06', 2e-2)
+    osc.chanset('CH1', 1, volt, '20.0000E+06', 2e-2)
     print(f"CH1 设置：位置=2, 缩放尺度={volt}, 时间基准=20.0000E+06, 时间尺度=0.01s")
 
     # 设置通道4的纵向尺度
@@ -2087,7 +2087,7 @@ def main_window():      # 主窗口设计
     # 设置输入框和标签
     tk.Label(root, text='SheetName:').grid(row=4, column=0, sticky=tk.E)
     EnValue1 = tk.StringVar()
-    EnValue1.set('P3V3')
+    EnValue1.set('P3V3_AUX')
     entry = tk.Entry(root, show=None, width=20, textvariable=EnValue1)
     entry.grid(row=4, column=1, columnspan=2)
 
@@ -3075,8 +3075,8 @@ def test6(type):
     if multi_phase_enabled.get() == "True":
         phase = int(phase_value.get())  # 假设 phase_value 是界面上的输入框变量
         print(f'phase的值为{phase}')
-        table_type = '表格1'
-        print('表格1')
+        table_type = '表格2'
+        print('表格2')
     else:
         table_type = '表格1'
         print('表格1')
