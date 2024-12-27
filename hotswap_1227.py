@@ -851,7 +851,7 @@ def get_ocp_spec():
 
 def go():  # 从 Excel 文件中提取数据并更新相关全局变量
     # 处理事件，*args表示可变参数
-    global volt, ld_max, freq, ocp_spec, temp, xls, vin, Iin, file_path           # 全局变量声明
+    global volt, ld_max, freq, ocp_spec, v_spec, temp, xls, vin, Iin, file_path           # 全局变量声明
     # 从 EasyExcel 中获取数据并去除空格
     xls = EasyExcel(file_path)
     temp = xls.getCell('Test Summary', 6, 3).strip()  # 去除前后空格
@@ -865,7 +865,7 @@ def go():  # 从 Excel 文件中提取数据并更新相关全局变量
 
     # 获取 ocp_spec 的值并去除空格
     ocp_spec = get_ocp_spec()
-
+    v_spec = xls.getCell(entry.get(), 124, 3)
     # 获取 vin 的值并去除空格
     vin = xls.getCell(entry.get(), 5, 11)  # 去除前后空格
 
@@ -874,6 +874,7 @@ def go():  # 从 Excel 文件中提取数据并更新相关全局变量
     print(f"ld_max: {ld_max}")  # 输出 ld_max 的值
     print(f"freq: {freq}")  # 输出 freq 的值
     print(f"ocp_spec: {ocp_spec}")  # 输出 ocp_spec 的值
+    print(f"v_spec: {v_spec}")  # 输出 v_spec 的值
     print(f"vin: {vin}")  # 输出 ocp_spec 的值
     print(f"Iin: {Iin}")  # 输出 ocp_spec 的值
 
@@ -1919,58 +1920,66 @@ def test5():
     common_set()
     tl5_channel_set()
     measure()
+    i =1
+    while i <= 2:
+        if i == 1:
+            tl5_channel_set()
+            set_horizontal_mode(2e-2, 2e-2, 50, 1e8, 2.5e6, 'MANUAL')
+            osc.trigger('NORMAL', 'CH4', 'RISE', volt / 2)
+            osc.state('single')  # 设置单步触发
+            time.sleep(2)  # 设置延时为主板上下电作准备
+            control_dc_source(vin, Iin, 'ON')
+            time.sleep(2)
+            RMSwindow = messagebox.askquestion(title='程序执行完毕',
+                                               message='程序已执行完毕，请确认波形是否正确，如果正确请使用六位半数字万用表测量输出端电压并在表格中填写！失败请点击否')
+            if RMSwindow == 'yes':
+                time.sleep(3)
+                osc.state('single')  # 设置单步触发
+                j = 0
+                v_ocp = vin  # 初始负载电流设为最大值
+                v_step = 0.05 * v_spec
+                print(f"初始负载电流：{v_ocp}")  # 显示初始负载电流
+                while v_ocp <= v_spec * 1.5:  # 直到负载电流超过标准的1.5倍
+                    v_ocp = vin + v_step * j
+                    j = j + 1
+                    print(f"当前负载电压：{v_ocp}")  # 显示当前负载电流
+                    el.static(9, 'MAX', v_ocp)
+                    el.state('ON')
+                    time.sleep(1)
+                    tri = process('tri')
+                    print(f"调用 'tri' 后的返回值：{tri}")  # 显示 'tri' 返回值
+                    if tri != 1:
+                        control_dc_source(12.0, 3.0, 'ON')
+                        el.state('OFF')
+                        ch4max = process('ch4max')
+                        xls.setCell(entry.get(), 75, 3, ch4max)
 
-    set_horizontal_mode(2e-2, 2e-2, 50, 1e8, 2.5e6, 'MANUAL')
-    osc.trigger('NORMAL', 'CH4', 'RISE', volt / 2)
-    osc.state('single')  # 设置单步触发
-    time.sleep(2)  # 设置延时为主板上下电作准备
-    control_dc_source(vin, Iin, 'ON')
-    time.sleep(2)
-    RMSwindow = messagebox.askquestion(title='程序执行完毕',
-                                       message='程序已执行完毕，请确认波形是否正确，如果正确请使用六位半数字万用表测量输出端电压并在表格中填写！失败请点击否')
-    if RMSwindow == 'yes':
-        time.sleep(3)
-        osc.state('single')  # 设置单步触发
-        j = 0
-        v_ocp = vin  # 初始负载电流设为最大值
-        v_step = 0.05 * ocp_spec
-        print(f"初始负载电流：{v_ocp}")  # 显示初始负载电流
-        while ld_ocp <= ocp_spec * 1.5:  # 直到负载电流超过标准的1.5倍
-            ld_ocp = ld_max + ldmax_step * j
-            j = j + 1
-            print(f"当前负载电流：{ld_ocp}")  # 显示当前负载电流
-            el.static(9, 'MAX', ld_ocp)
-            el.state('ON')
-            time.sleep(1)
-            tri = process('tri')
-            print(f"调用 'tri' 后的返回值：{tri}")  # 显示 'tri' 返回值
-            if tri != 1:
-                control_dc_source(12.0, 3.0, 'ON')
-                el.state('OFF')
+                        test_save(3, 1, 'F69', 36, 10, 349, 223)
+                        print(f"第 1 次测试完成，数据已保存")
+                    elif v_ocp >= v_spec * 1.5:  # 电流超载
+                        el.state('OFF')
+                        print("电流超载，测试停止")
+                        break  # 如果超载，停止测试
+
                 ch4max = process('ch4max')
-                xls.setCell(entry.get(), 75, 3, ch4max)
-
-                test_save(3, 1, 'F69', 36, 10, 349, 223)
-                print(f"第 1 次测试完成，数据已保存")
-            elif ld_ocp >= ocp_spec * 1.5:  # 电流超载
-                el.state('OFF')
-                print("电流超载，测试停止")
-                break  # 如果超载，停止测试
+                xls.setCell(entry.get(), 31, 3, ch4max)
+                test_save(4, 1, 'F25', 36, 10, 361, 223)
+                print(f"第 1 次测试完成\n")  # 提示测试完成
 
 
-        ch4max = process('ch4max')
-        xls.setCell(entry.get(), 31, 3, ch4max)
-        test_save(4, 1, 'F25', 36, 10, 361, 223)
-        print(f"第 1 次测试完成\n")  # 提示测试完成
 
-        print("保存 Excel 文件")
-        xls.save()  # 保存 Excel 文件
 
-        print("TEST1测试结束")
-        auto_close_messagebox(root, '程序执行完毕', 'TEST1测试完成')
-        if root1:
-            root1.destroy()
+            print("TEST1测试结束")
+            auto_close_messagebox(root, '程序执行完毕', 'TEST1测试完成')
+            if root1:
+                root1.destroy()
+        elif i == 2:
+            tl5_channel_set()
 
+
+
+    print("保存 Excel 文件")
+    xls.save()  # 保存 Excel 文件
 def test6(type):
     print("TEST3测试开始")
     test_modes = {
