@@ -1219,10 +1219,7 @@ def set_load(channel=None, mode=None, load_value=None, lvp_on=True, load=True,):
             time.sleep(0.5)
             print(f"Channel: {channel}, Mode: {mode}, Load Value: {load_value}")
 
-            # 打开低电压保护（LVP）模式
-            el.write('CONF:LVP ON')
-            time.sleep(0.5)
-            print("Low Voltage Protection (LVP) is ON.")
+
 
             # 打开电子负载
             el.state('ON')
@@ -1535,7 +1532,8 @@ def measure6():  # 测量CH4的 MAX MIN
     if MSO5 == 1:
         if table_type == '表格1':
             osc.measure_1(1, 'CH4', 'MAXIMUM')
-            for i in range(1, 2):
+            osc.measure_1(2, 'CH4', 'MINIMUM')
+            for i in range(1, 3):
                 osc.write(f'MEASUREMENT:MEAS{i}:DISPlaystat:ENABle OFF')
         if table_type == '表格2':
             osc.measure_1(1, 'CH4', 'MAXIMUM')
@@ -1550,8 +1548,9 @@ def measure6():  # 测量CH4的 MAX MIN
 
     else:
         if table_type == '表格1':
-            osc.measure(1, 'CH4', 'MAXIMUM')
-            for i in range(1, 2):
+            osc.measure_1(1, 'CH4', 'MAXIMUM')
+            osc.measure_1(2, 'CH4', 'MINIMUM')
+            for i in range(1, 3):
                 osc.write(f'MEASUREMENT:MEAS{i}:DISPlaystat:ENABle OFF')
         if table_type == '表格2':
             osc.measure(1, 'CH4', 'MAXIMUM')
@@ -1598,7 +1597,7 @@ def tl2_channel_set():
     print("通道1和通道4已开启。")
 
     # 设置通道1的相关参数
-    osc.chanset('CH1', 1, volt, '20.0000E+06', 2e-2)
+    osc.chanset('CH1', 2, volt, '20.0000E+06', 2e-2)
     print(f"CH1 设置：位置=2, 缩放尺度={volt}, 时间基准=20.0000E+06, 时间尺度=0.01s")
 
     # 设置通道4的纵向尺度
@@ -1643,7 +1642,7 @@ def tl3_channel_set():  # 根据电压 volt 的值设置示波器的四个通道
 
     osc.chanset('CH2', -1, 0, '20.0000E+06', 1)  # 设置通道2、3、4
     osc.chanset('CH3', -3, 0, '20.0000E+06', 1)
-    osc.chanset('CH4', -0, 0, '20.0000E+06', 5)
+    osc.chanset('CH4', -0, 0, '20.0000E+06', 1)
 
     osc.label('CH1', entry.get(), 1, 9)  # 设置label
     osc.label('CH2', "EN", 1.5, 9)
@@ -2087,7 +2086,7 @@ def main_window():      # 主窗口设计
     # 设置输入框和标签
     tk.Label(root, text='SheetName:').grid(row=4, column=0, sticky=tk.E)
     EnValue1 = tk.StringVar()
-    EnValue1.set('P3V3_AUX')
+    EnValue1.set('P3V3_OCP1')
     entry = tk.Entry(root, show=None, width=20, textvariable=EnValue1)
     entry.grid(row=4, column=1, columnspan=2)
 
@@ -2424,9 +2423,9 @@ def test2(type):
     print("Excel 文件已保存")
     print("TEST2测试结束")
     auto_close_messagebox(root,'程序执行完毕', 'TEST2测试完成，若继续进行TEST4测试，请进行电路下电')
-    if root2:
-        root2.destroy()
     control_dc_source(vin, Iin, 'OFF')
+    if root:
+        root2.destroy()
     test4('ALL')
 
 def test3(type):
@@ -2513,15 +2512,10 @@ def test3(type):
         print("等待 3 秒，以准备主板上下电")
         time.sleep(3)  # 设置延时为主板上下电作准备
         if i == 1 or i == 3:
-            control_dc_source(12.0, 3.0, 'ON')
+            control_dc_source(vin, Iin, 'ON')
         if i == 2 or i == 4:
-            control_dc_source(12.0, 3.0, 'OFF')
-        if i == 3:
-            set_load(load=False)
-            print("关闭电子负载的低电压保护 LVP模式")
-        else:
-            el.state('OFF')
-            print("关闭负载")
+            control_dc_source(vin, Iin, 'OFF')
+
         time.sleep(1)
         # 保存测试结果图像
         image_index = {1: 'F67', 2: 'F86', 3: 'R67', 4: 'R86'}
@@ -2651,9 +2645,9 @@ def test4(type):
             time.sleep(2)
 
         if i == 1 or i == 3:
-            control_dc_source(12.0, 3.0, 'ON')
+            control_dc_source(vin, Iin, 'ON')
         if i == 2 or i == 4:
-            control_dc_source(12.0, 3.0, 'OFF')
+            control_dc_source(vin, Iin, 'OFF')
         time.sleep(3)
         if type != 'ALL':
             ch_value = process(process_type)
@@ -2697,6 +2691,8 @@ def test4(type):
     auto_close_messagebox(root, '程序执行完毕', 'TEST4测试完成')
     if root4:
         root4.destroy()
+    else:
+        return 1
 
 def test5(type):
     global root5, table_type, phase, multi_phase_enabled
@@ -2787,7 +2783,7 @@ def test5(type):
 
                 elif i == 2:
                     measure5('FRE')
-                    el.static(9, 'MAX', ld_max)
+                    el.static(9, 'MAX', ld_max-1)
                     el.state('ON')
                     set_osc()
                     connect = messagebox.askquestion(title='电路接switch',
@@ -2833,7 +2829,7 @@ def test5(type):
                 elif i == 4:
                     measure5('PWIDTH')
                     set_record_length()
-                    el.static(9, 'MAX', ld_max)
+                    el.static(9, 'MAX', ld_max-1)
                     el.state('ON')
                     set_cursor()
                     set_osc()
@@ -3245,7 +3241,7 @@ def test8():
         row_start = 245
         row_end = 255
 
-
+    control_dc_source(vin, Iin, 'ON')
     # 获取 choice 的值，决定测量模式
     choice_value = choice.get()
 
@@ -3257,7 +3253,7 @@ def test8():
         # 设置电流
         el.static(9, 'MAX', test_current)
         el.state('ON')
-        time.sleep(3)
+        time.sleep(5)
 
         # 扫描并读取数据
         da.Scan_Channel()
@@ -3289,6 +3285,7 @@ def test8():
     time.sleep(1)
     print("TEST8测试结束")
     root8.destroy()
+    control_dc_source(vin, Iin, 'OFF')
 
 def test9(type):
     print("TEST9测试开始")
@@ -3335,7 +3332,7 @@ def test9(type):
                 print("设置水平模式和触发条件，开始单步触发...")
                 set_horizontal_mode(1e-2, 1e-2, 25, 1e7)
                 osc.trigger('NORMAL', 'CH1', 'FALL', volt / 2)
-                control_dc_source(12.0, 3.0, 'ON')
+                control_dc_source(vin, Iin, 'ON')
 
                 time.sleep(3)
                 osc.state('single')  # 设置单步触发
@@ -3353,7 +3350,7 @@ def test9(type):
                     tri = process('tri')
                     print(f"调用 'tri' 后的返回值：{tri}")  # 显示 'tri' 返回值
                     if tri != 1:
-                        control_dc_source(12.0, 3.0, 'OFF')
+                        control_dc_source(vin, Iin, 'OFF')
                         el.state('OFF')
                         ld_ocp = process('ld_ocp')
                         print(f"调用 'ld_ocp' 后的返回值：{ld_ocp}")  # 显示 'ld_ocp' 返回值
@@ -3371,20 +3368,16 @@ def test9(type):
 
             elif i == 3:
                 print("设置水平模式和触发条件，开始单步触发...")
-                control_dc_source(12.0, 3.0, 'OFF')
+                control_dc_source(vin, Iin, 'OFF')
                 set_horizontal_mode(1e-2, 1e-2, 35, 1e7)
                 osc.trigger('NORMAL', 'CH4', 'RISE', volt / 2)
                 time.sleep(3)
                 osc.state('single')  # 设置单步触发
                 el.static(9, 'MAX', 0)
                 el.state('ON')
-                el.short('OFF')
-                time.sleep(2)
                 el.short('ON')
-                refresh(electronic=True, delay=2)
-                control_dc_source(12.0, 3.0, 'ON')
-                el.state('OFF')
-                el.short('OFF')
+                time.sleep(2)
+                control_dc_source(vin, Iin, 'ON')
                 time.sleep(2)
                 ld_short = process('ld_short')
                 row, col = cell_positions.get(i, (0, 0))
@@ -3392,16 +3385,18 @@ def test9(type):
                 picture_cell = image_index.get(i, 0)
                 test_save(9, i, picture_cell, 36, 10, 349, 223)
                 print(f"第 {i} 次测试完成，数据已保存")
+                el.state('OFF')
+                el.short('OFF')
 
 
             elif i == 4:
                 print("设置水平模式和触发条件，开始单步触发...")
-                control_dc_source(12.0, 3.0, 'OFF')
+                control_dc_source(vin, Iin, 'OFF')
                 set_horizontal_mode(1e-2, 1e-2, 40, 1e7)
                 osc.trigger('NORMAL', 'CH1', 'FALL', volt / 2)
                 time.sleep(3)
                 osc.state('single')  # 设置单步触发
-                control_dc_source(12.0, 3.0, 'ON')
+                control_dc_source(vin, Iin, 'ON')
                 el.static(9, 'MAX', ld_max)
                 el.state('ON')
                 time.sleep(2)
@@ -3423,7 +3418,7 @@ def test9(type):
             print("设置水平模式和触发条件，开始单步触发...")
             set_horizontal_mode(1e-2, 1e-2, 25, 1e7)
             osc.trigger('NORMAL', 'CH1', 'FALL', volt / 2)
-            control_dc_source(12.0, 3.0, 'ON')
+            control_dc_source(vin, Iin, 'ON')
             time.sleep(3)
             osc.state('single')  # 设置单步触发
             j = 0
@@ -3440,7 +3435,7 @@ def test9(type):
                 tri = process('tri')
                 print(f"调用 'tri' 后的返回值：{tri}")  # 显示 'tri' 返回值
                 if tri != 1:
-                    control_dc_source(12.0, 3.0, 'ON')
+                    control_dc_source(vin, Iin, 'ON')
                     el.state('OFF')
                     ld_ocp = process('ld_ocp')
                     row, col = cell_positions.get(i, (0, 0))
@@ -3458,33 +3453,30 @@ def test9(type):
         elif type== 'scpbefore':
             i = 3
             print("设置水平模式和触发条件，开始单步触发...")
-            control_dc_source(12.0, 3.0, 'OFF')
+            control_dc_source(vin, Iin, 'OFF')
             set_horizontal_mode(1e-2, 1e-2, 35, 1e7)
-            osc.trigger('NORMAL', 'CH4', 'RISE', volt / 2)
+            osc.trigger('NORMAL', 'CH4', 'RISE', Iin / 2)
             time.sleep(3)
             osc.state('single')  # 设置单步触发
             el.static(9, 'MAX', 0)
-            el.state('ON')
-            el.short('OFF')
-            time.sleep(2)
             el.short('ON')
-            refresh(electronic=True, delay=2)
-            control_dc_source(12.0, 3.0, 'ON')
-            el.state('OFF')
-            el.short('OFF')
-            time.sleep(2)
+            time.sleep(3)
+            print('短路')
+            control_dc_source(vin, Iin, 'ON')
+            time.sleep(3)
             ld_short = process('ld_short')
             row, col = cell_positions.get(i, (0, 0))
             xls.setCell(entry.get(), row, col, ld_short)
             picture_cell = image_index.get(i, 0)
             test_save(9, i, picture_cell, 36, 10, 349, 223)
             print(f"第 {i} 次测试完成，数据已保存")
+            el.short('OFF')
 
 
         elif type == 'scpafter':
             i = 4
             print("设置水平模式和触发条件，开始单步触发...")
-            control_dc_source(12.0, 3.0, 'OFF')
+            control_dc_source(vin, Iin, 'OFF')
             set_horizontal_mode(1e-2, 1e-2, 40, 1e7)
             osc.trigger('NORMAL', 'CH1', 'FALL', volt / 2)
             time.sleep(3)
@@ -3492,7 +3484,7 @@ def test9(type):
 
             el.state('OFF')
             el.short('OFF')
-            control_dc_source(12.0, 3.0, 'ON')
+            control_dc_source(vin, Iin, 'ON')
             el.static(9, 'MAX', ld_max)
             el.state('ON')
             time.sleep(3)
@@ -3515,7 +3507,7 @@ def test9(type):
     xls.save()  # 保存 Excel 文件
     print("TEST9测试结束")
     auto_close_messagebox(root9, title='程序执行完毕',message='TEST9执行完毕,如需进行TEST3测试，请更换CH4通道为高压差分探头连接VIN，CH2添加单端无源探头连接EN，并进行电路下电')
-    control_dc_source(12.0, 3.0, 'OFF')
+    control_dc_source(vin, Iin, 'OFF')
     root9.destroy()
 
 
